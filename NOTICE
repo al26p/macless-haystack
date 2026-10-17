@@ -1,0 +1,63 @@
+Third-party components
+======================
+
+This repository is a derivative work. The components below remain under their own
+licenses; this repository's own code is AGPL-3.0 (see LICENSE).
+
+1. macless-haystack
+   - Source: https://github.com/dchristl/macless-haystack
+   - Pinned base image tag: christld/macless-haystack
+   - Upstream commit referenced: 0bda271b8bd0cc37194dfba1845cd48954cba4cc
+   - License: GNU Affero General Public License v3.0 (AGPL-3.0)
+   - Use here: base Docker image; `mh_endpoint.py` is a modified copy of its
+     `endpoint/mh_endpoint.py`.
+
+2. os-findmy-e
+   - Source: https://github.com/sacca97/os-findmy-e
+   - Pinned commit: 2096d875dac6b5ed2347a9ae8c39c7251c0d6ed6
+   - License: MIT (Copyright (c) 2026 sacca)
+   - Use here: emulated macOS CoreADI anisette, provisioning, login and resync
+     tooling, installed into the image at /opt/osfindmye.
+
+3. FindMy.py (parawanderer fork)
+   - Source: https://github.com/parawanderer/FindMy.py
+   - Pinned commit: 7969003ca785658369b650f75d9e7ca519566bf6
+   - License: MIT
+   - Use here: Apple ID login and Find My protocol library (dependency of
+     os-findmy-e).
+
+4. Anisette
+   - Source: https://pypi.org/project/Anisette/
+   - Version: 1.2.4 (Dadoum)
+   - License: see the upstream project.
+   - Use here: dependency of the FindMy.py fork (remote anisette provider; not
+     used by this project's macOS path).
+
+5. Apple CoreADI.framework
+   - Source: iTunes 12.8.3 for Mac (Apple), fetched at image build time by
+     os-findmy-e's tools/fetch_mac_coreadi.py.
+   - Not redistributed by this repository; copyright Apple Inc.
+
+MIT license text (applies to items 2 and 3)
+-------------------------------------------
+
+Copyright (c) 2026 sacca (os-findmy-e)
+Copyright (c) The FindMy.py authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

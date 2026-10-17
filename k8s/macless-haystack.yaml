@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: apple-credentials
+type: Opaque
+stringData:
+  APPLE_ID: "alban.prats@gmail.com"
+  APPLE_PASSWORD: "REPLACE_ME"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: macless-haystack-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: macless-haystack
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: macless-haystack
+  template:
+    metadata:
+      labels:
+        app: macless-haystack
+    spec:
+      containers:
+        - name: endpoint
+          image: macless-haystack-osfindmye:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6176
+          envFrom:
+            - secretRef:
+                name: apple-credentials
+          volumeMounts:
+            - name: data
+              mountPath: /app/endpoint/data
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 6176
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 6176
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: macless-haystack-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: macless-haystack
+spec:
+  selector:
+    app: macless-haystack
+  ports:
+    - name: http
+      port: 6176
+      targetPort: 6176

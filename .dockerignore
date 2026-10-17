@@ -1,0 +1,9 @@
+.git
+.gitignore
+osfindmye/
+data/
+__pycache__/
+*.pyc
+*.pyo
+*.stale-*
+.env
