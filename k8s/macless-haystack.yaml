@@ -34,9 +34,12 @@ spec:
       labels:
         app: macless-haystack
     spec:
+      # If the ghcr.io package is private, add your pull secret:
+      # imagePullSecrets:
+      #   - name: ghcr-pull
       containers:
         - name: endpoint
-          image: macless-haystack-osfindmye:latest
+          image: ghcr.io/al26p/macless-haystack:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 6176

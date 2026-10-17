@@ -34,7 +34,18 @@ enforcing platform provenance on `X-MMe-Client-Info`.
 | `mh_endpoint.py` | Patched macless-haystack endpoint with `/login`, `/2fa`, `/status` routes. |
 | `k8s/macless-haystack.yaml` | Secret, PVC, Deployment and Service. |
 
-## Build
+## Image
+
+A prebuilt image is published to GitHub Container Registry by
+`.github/workflows/build-image.yaml` (on pushes to `main`, on `v*` tags, or manually via
+*Run workflow*):
+
+```
+ghcr.io/al26p/macless-haystack:latest
+```
+
+The workflow authenticates with the built-in `GITHUB_TOKEN` (`packages: write` is granted
+in the workflow), so no extra secrets are required. To build locally instead:
 
 ```sh
 docker build -t macless-haystack-osfindmye .
@@ -47,7 +58,7 @@ docker run -d --name macless-haystack --restart on-failure \
   --network mh-network -p 6176:6176 \
   -v mh_data:/app/endpoint/data \
   -e APPLE_ID=you@example.com -e APPLE_PASSWORD=secret \
-  macless-haystack-osfindmye
+  ghcr.io/al26p/macless-haystack:latest
 ```
 
 Then, when a login is needed (the logs say so, or `/status` shows `waiting_manual_login`):
@@ -84,8 +95,9 @@ The PVC holds `auth.json` and the `macadi` machine identity, so a re-login survi
 restarts. Health probes point at `/` (always `200` while the process is alive), so a lapsed
 login does not trigger a restart / crash loop; watch `/status` and `503` on `/find` instead.
 
-> Note: the image is built from a locally-tagged `macless-haystack-osfindmye:latest`. Push it
-> to your registry and set `image:` accordingly before applying.
+> The manifest uses `ghcr.io/al26p/macless-haystack:latest`. If the GHCR package is private,
+> create an image pull secret and uncomment `imagePullSecrets` in the manifest (or make the
+> package public under the repository's *Packages* settings).
 
 ## Credits and sources
 
