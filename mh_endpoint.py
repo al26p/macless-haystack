@@ -167,6 +167,8 @@ class ServerHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     logging.info('Using os-findmy-e emulated macOS anisette for auth')
     logging.info('Token file: ' + mh_config.getConfigFile())
+    if mac_auth.recover_session():
+        logging.info('Recovered the Apple session from session.json')
     if not mac_auth.has_session():
         if sys.stdin.isatty():
             logging.info('No Apple session; starting an interactive login.')

@@ -50,6 +50,22 @@ def session_file():
     return os.path.join(_data_dir(), "session.json")
 
 
+def _promote_session():
+    """Copy auth_probe's output (session.json) to the file the endpoint reads (auth.json)."""
+    if not os.path.exists(session_file()):
+        return False
+    with open(session_file()) as stream:
+        saved = json.load(stream)
+    with open(mh_config.getConfigFile(), "w") as stream:
+        json.dump({"dsid": saved["dsid"], "searchPartyToken": saved["searchPartyToken"]}, stream)
+    return True
+
+
+def recover_session():
+    """Adopt an existing session.json as the active session (e.g. after a restart)."""
+    return _promote_session()
+
+
 def has_session():
     return os.path.exists(mh_config.getConfigFile())
 
@@ -223,7 +239,7 @@ def _login_worker(email, password):
                 if line.strip():
                     logging.info("os-findmy-e login: %s", line.strip())
         proc.wait()
-        if has_session():
+        if _promote_session():
             with _login_lock:
                 _login["state"] = "authenticated"
                 _login["detail"] = "login complete"
@@ -272,6 +288,7 @@ def login():
     ], env=env)
     if result.returncode != 0 or not os.path.exists(session_file()):
         raise RuntimeError("os-findmy-e: Apple login failed")
+    _promote_session()
     with open(session_file()) as stream:
         saved = json.load(stream)
     return saved["dsid"], saved["searchPartyToken"]
