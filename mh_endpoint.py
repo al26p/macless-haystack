@@ -164,6 +164,17 @@ class ServerHandler(BaseHTTPRequestHandler):
         self.sendJson(200 if result.get("ok") else 409, result)
 
 
+class Server(HTTPServer):
+    """HTTPServer that treats a client hanging up as a non-event."""
+
+    def handle_error(self, request, client_address):
+        error = sys.exc_info()[1]
+        if isinstance(error, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            logger.debug("client %s disconnected: %s", client_address, error)
+            return
+        super().handle_error(request, client_address)
+
+
 if __name__ == "__main__":
     logging.info('Using os-findmy-e emulated macOS anisette for auth')
     logging.info('Token file: ' + mh_config.getConfigFile())
@@ -182,7 +193,7 @@ if __name__ == "__main__":
 
     Handler = ServerHandler
 
-    httpd = HTTPServer((mh_config.getBindingAddress(), mh_config.getPort()), Handler)
+    httpd = Server((mh_config.getBindingAddress(), mh_config.getPort()), Handler)
     httpd.timeout = 30
     address = mh_config.getBindingAddress() + ":" + str(mh_config.getPort())
     if os.path.isfile(mh_config.getCertFile()):
