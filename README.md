@@ -33,6 +33,8 @@ enforcing platform provenance on `X-MMe-Client-Info`.
 | `mac_auth.py` | Anisette headers, login state machine, resync, fetch wrapper. |
 | `mh_endpoint.py` | Patched macless-haystack endpoint with `/login`, `/2fa`, `/status` routes. |
 | `k8s/macless-haystack.yaml` | Secret, PVC, Deployment and Service. |
+| `bridge/` | Traccar bridge image: queries the endpoint and replays decrypted locations into Traccar. |
+| `k8s/traccar-bridge.yaml` | Secret, PVC and CronJob for the Traccar bridge. |
 | `upstream/macless-haystack` | Git submodule pinned to the upstream endpoint source (AGPL-3.0). |
 
 ## Image
@@ -101,6 +103,20 @@ login does not trigger a restart / crash loop; watch `/status` and `503` on `/fi
 > The manifest uses `ghcr.io/al26p/macless-haystack:latest`. If the GHCR package is private,
 > create an image pull secret and uncomment `imagePullSecrets` in the manifest (or make the
 > package public under the repository's *Packages* settings).
+
+## Traccar bridge
+
+A second, optional image in this repository (`ghcr.io/al26p/macless-haystack-bridge`)
+replays locations into a [Traccar](https://www.traccar.org/) server so the tags show up
+as normal Traccar devices with full trip history.
+
+Every run it reads a map of `{traccar-device-name: privateKey}`, derives each Apple search
+id from the private key, asks this endpoint for the last 24 hours of encrypted reports,
+decrypts them locally, and posts each position to Traccar's OsmAnd endpoint
+(`:5055`) at its **original** fix time. Traccar accepts historical timestamps, so the
+last day of movement is backfilled into its trip/history pipeline. See
+[`bridge/README.md`](bridge/README.md) for details, and `k8s/traccar-bridge.yaml` for a
+ready-to-apply CronJob (every 6 hours) that pairs with the deployment above.
 
 ## Credits and sources
 
