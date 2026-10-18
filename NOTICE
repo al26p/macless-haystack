@@ -6,10 +6,11 @@ licenses; this repository's own code is AGPL-3.0 (see LICENSE).
 
 1. macless-haystack
    - Source: https://github.com/dchristl/macless-haystack
-   - Pinned base image tag: christld/macless-haystack
-   - Upstream commit referenced: 0bda271b8bd0cc37194dfba1845cd48954cba4cc
+   - Pinned submodule commit: 0bda271b8bd0cc37194dfba1845cd48954cba4cc
+     (included as the `upstream/macless-haystack` git submodule)
    - License: GNU Affero General Public License v3.0 (AGPL-3.0)
-   - Use here: base Docker image; `mh_endpoint.py` is a modified copy of its
+   - Use here: the endpoint source is copied from its `endpoint/` directory and
+     built from source; `mh_endpoint.py` is a modified copy of its
      `endpoint/mh_endpoint.py`.
 
 2. os-findmy-e

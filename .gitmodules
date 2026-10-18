@@ -1,0 +1,4 @@
+[submodule "upstream/macless-haystack"]
+	path = upstream/macless-haystack
+	url = https://github.com/dchristl/macless-haystack.git
+	shallow = true

@@ -29,10 +29,11 @@ enforcing platform provenance on `X-MMe-Client-Info`.
 
 | Path | Purpose |
 | --- | --- |
-| `Dockerfile` | Builds the endpoint image on top of `christld/macless-haystack`, adding `os-findmy-e`. |
+| `Dockerfile` | Builds the endpoint from `python:3.14-slim`, the pinned upstream `endpoint/`, and `os-findmy-e`. |
 | `mac_auth.py` | Anisette headers, login state machine, resync, fetch wrapper. |
 | `mh_endpoint.py` | Patched macless-haystack endpoint with `/login`, `/2fa`, `/status` routes. |
 | `k8s/macless-haystack.yaml` | Secret, PVC, Deployment and Service. |
+| `upstream/macless-haystack` | Git submodule pinned to the upstream endpoint source (AGPL-3.0). |
 
 ## Image
 
@@ -45,9 +46,11 @@ ghcr.io/al26p/macless-haystack:latest
 ```
 
 The workflow authenticates with the built-in `GITHUB_TOKEN` (`packages: write` is granted
-in the workflow), so no extra secrets are required. To build locally instead:
+in the workflow), so no extra secrets are required. The endpoint is built from the pinned
+`upstream/macless-haystack` submodule, so check out submodules first. To build locally:
 
 ```sh
+git submodule update --init --recursive
 docker build -t macless-haystack-osfindmye .
 ```
 
