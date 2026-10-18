@@ -56,7 +56,8 @@ All configuration is via environment variables:
 | `STATE_FILE` | `/state/seen.json` | Dedup state (must survive across runs). |
 | `QUERY_DAYS` | `1` | How far back to query (the endpoint's `days`). |
 | `STATE_MAX_AGE` | `172800` | Prune seen reports older than this many seconds. |
-| `MH_MAX_IDS` | `100` | Max ids per fetch request (the bridge chunks). |
+| `MH_PER_DEVICE` | `true` | Query each device with its own `/find` request (one log line per tag). Set to `false` to batch. |
+| `MH_MAX_IDS` | `100` | Max ids per fetch request when batching (`MH_PER_DEVICE=false`). |
 | `HTTP_TIMEOUT` | `60` | Request timeout in seconds. |
 | `DRY_RUN` | `false` | Fetch and decrypt, log what would be posted, but do not post or touch state. |
 | `LOG_LEVEL` | `INFO` | Python logging level. |

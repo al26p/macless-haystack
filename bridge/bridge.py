@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 
 import requests
@@ -160,14 +161,24 @@ def save_state(path, seen):
 # macless-haystack endpoint
 # ---------------------------------------------------------------------------
 
-def fetch_reports(session, endpoint_url, apple_ids, days, timeout):
-    """Ask the endpoint for reports; chunk ids to stay within Apple's limits."""
-    chunk_size = int(env("MH_MAX_IDS", "100"))
+def fetch_reports(session, endpoint_url, apple_ids, days, timeout, per_device):
+    """Ask the endpoint for reports.
+
+    By default each id is queried on its own (one ``/find`` request per device,
+    matching the macless frontend and giving one log line per tag). Set
+    ``MH_PER_DEVICE=false`` to batch ids into ``MH_MAX_IDS``-sized requests.
+    """
+    if per_device:
+        batches = [[apple_id] for apple_id in apple_ids]
+    else:
+        chunk_size = int(env("MH_MAX_IDS", "100"))
+        batches = [apple_ids[start:start + chunk_size]
+                   for start in range(0, len(apple_ids), chunk_size)]
+
     results = []
-    for start in range(0, len(apple_ids), chunk_size):
-        chunk = apple_ids[start:start + chunk_size]
+    for batch in batches:
         response = session.post(
-            endpoint_url, json={"ids": chunk, "days": days}, timeout=timeout)
+            endpoint_url, json={"ids": batch, "days": days}, timeout=timeout)
         if response.status_code == 503:
             raise ReloginRequired(response.text)
         response.raise_for_status()
@@ -238,8 +249,10 @@ def run():
             int.from_bytes(base64.b64decode(private_key_b64), "big"), CURVE)
         by_id[derive_apple_id(private_key_b64)] = (name, private_key)
 
-    LOGGER.info("Querying %s for %d key(s), last %s day(s)",
-                endpoint_url, len(by_id), days)
+    per_device = env_bool("MH_PER_DEVICE", True)
+    LOGGER.info("Querying %s for %d key(s), last %s day(s), %s",
+                endpoint_url, len(by_id), days,
+                "one request per device" if per_device else "batched")
 
     now = int(datetime.now(timezone.utc).timestamp())
     seen = load_state(state_path, now, max_age=int(env("STATE_MAX_AGE", "172800")))
@@ -249,7 +262,8 @@ def run():
     session.verify = verify_tls
 
     try:
-        reports = fetch_reports(session, endpoint_url, list(by_id), days, timeout)
+        reports = fetch_reports(
+            session, endpoint_url, list(by_id), days, timeout, per_device)
     except ReloginRequired as error:
         LOGGER.error("macless-haystack needs a new Apple login (%s): "
                      "POST /login then /2fa", error)
@@ -276,6 +290,10 @@ def run():
         decoded["state_key"] = hashlib.sha256(
             report["payload"].encode("ascii")).hexdigest()
         positions.append(decoded)
+
+    counts = Counter(position["name"] for position in positions)
+    for device_name in devices:
+        LOGGER.info("  %s: %d report(s)", device_name, counts.get(device_name, 0))
 
     positions.sort(key=lambda item: item["timestamp"])
 
