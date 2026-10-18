@@ -6,7 +6,6 @@ import logging
 import os
 import ssl
 import sys
-from collections import OrderedDict
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -16,6 +15,29 @@ import mac_auth
 import mh_config
 
 logger = logging.getLogger()
+
+
+def select_reports(results, startdate):
+    """Keep reports newer than ``startdate`` from every id.
+
+    Reports are de-duplicated by (id, timestamp). Keying by timestamp alone
+    (as upstream does) dropped reports whenever two accessories were seen by
+    the same finder in the same second, so only one tag came back.
+    """
+    selected = []
+    seen = set()
+    for entry in results:
+        payload = base64.b64decode(entry['payload'])
+        timestamp = int.from_bytes(payload[0:4], 'big') + 978307200
+        if timestamp <= startdate:
+            continue
+        key = (entry.get('id'), timestamp)
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append((timestamp, entry))
+    selected.sort(key=lambda item: item[0], reverse=True)
+    return [entry for _, entry in selected]
 
 
 class ServerHandler(BaseHTTPRequestHandler):
@@ -122,17 +144,7 @@ class ServerHandler(BaseHTTPRequestHandler):
             result = json.loads(r.content.decode())
             results = result['results']
 
-            newResults = OrderedDict()
-
-            for idx, entry in enumerate(results):
-                data = base64.b64decode(entry['payload'])
-                timestamp = int.from_bytes(data[0:4], 'big') + 978307200
-                if (timestamp > startdate):
-                    newResults[timestamp] = entry
-
-            sorted_map = OrderedDict(sorted(newResults.items(), reverse=True))
-
-            result["results"] = list(sorted_map.values())
+            result["results"] = select_reports(results, startdate)
             self.send_response(200)
             # send response headers
             self.addCORSHeaders()
