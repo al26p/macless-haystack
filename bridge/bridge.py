@@ -183,10 +183,15 @@ class ReloginRequired(Exception):
 # Traccar (OsmAnd protocol)
 # ---------------------------------------------------------------------------
 
-def post_position(session, traccar_url, name, position, timeout):
+def build_params(name, position):
+    """Build the OsmAnd query for one position.
+
+    The report timestamp is sent in milliseconds and is never replaced by the
+    current time, so Traccar stores the position at its original fix time.
+    """
     params = {
         "id": name,
-        "timestamp": position["timestamp"],
+        "timestamp": position["timestamp"] * 1000,
         "lat": f"{position['latitude']:.7f}",
         "lon": f"{position['longitude']:.7f}",
         "conf": position["confidence"],
@@ -196,8 +201,12 @@ def post_position(session, traccar_url, name, position, timeout):
     level = BATTERY_LEVEL.get(position["battery"])
     if level is not None:
         params["batt"] = level
+    return params
 
-    response = session.get(traccar_url, params=params, timeout=timeout)
+
+def post_position(session, traccar_url, name, position, timeout):
+    response = session.get(
+        traccar_url, params=build_params(name, position), timeout=timeout)
     response.raise_for_status()
     return response
 

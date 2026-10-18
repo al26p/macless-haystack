@@ -107,6 +107,18 @@ class BridgeTest(unittest.TestCase):
         self.assertEqual(bridge.battery_from_status(0x80 | 0x20), "low")
         self.assertEqual(bridge.battery_from_status(0xC0 | 0x20), "critical")
 
+    def test_posted_timestamp_matches_report(self):
+        timestamp = 1750000000
+        payload = make_report(
+            self.device_private, timestamp, 1, 48.8566, 2.3522, 3, 0x20)
+        decoded = bridge.decrypt_report(self.device_private, payload)
+        params = bridge.build_params("airtag", decoded)
+        self.assertEqual(params["timestamp"], timestamp * 1000)
+        self.assertEqual(params["id"], "airtag")
+        self.assertEqual(params["lat"], "48.8566000")
+        self.assertEqual(params["lon"], "2.3522000")
+        self.assertEqual(params["batt"], 100)
+
 
 if __name__ == "__main__":
     unittest.main()

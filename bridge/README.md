@@ -117,6 +117,11 @@ insert duplicate positions.
   the casing consistent.
 - The bridge sends `conf`, `status` and `accuracy` as position attributes and a coarse
   `batt` level derived from the status byte.
+- **Timestamps are preserved.** Each position is posted with the report's original
+  timestamp (in milliseconds), never the current time, so Traccar stores it at the fix
+  time and rebuilds history correctly. Make sure the target devices do **not** have the
+  `time.override` attribute set to `serverTime` (that would replace the fix time with the
+  server time); leave it unset or use `deviceTime`.
 - If the endpoint's Apple session has lapsed it returns `503 {"error":"relogin_required"}`.
   The bridge logs this and exits `0`; run `POST /login` and `POST /2fa` as described in the
   top-level README, and the next run resumes.
