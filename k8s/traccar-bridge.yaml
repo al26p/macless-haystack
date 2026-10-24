@@ -6,6 +6,9 @@
 # export). The Apple search id is derived from the private key at runtime, so
 # only the private key is stored here.
 #
+# A tag that rotates through several advertisement keys uses a list value:
+#   "Z7NYAJ": ["<leading-b64>", "<b64>", "<b64>", ...]
+#
 # The Traccar devices must already exist with a matching uniqueId, unless
 # database.registerUnknown is enabled on the server.
 ---
@@ -18,7 +21,7 @@ stringData:
   devices.json: |
     {
       "airtag1": "REPLACE_WITH_PRIVATE_KEY_B64",
-      "airtag2": "REPLACE_WITH_PRIVATE_KEY_B64"
+      "Z7NYAJ": ["REPLACE_WITH_LEADING_PRIVATE_KEY_B64", "REPLACE_WITH_PRIVATE_KEY_B64"]
     }
 ---
 apiVersion: v1

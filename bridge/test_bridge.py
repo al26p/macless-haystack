@@ -120,5 +120,68 @@ class BridgeTest(unittest.TestCase):
         self.assertEqual(params["batt"], 100)
 
 
+class DeviceParsingTest(unittest.TestCase):
+
+    def _key(self):
+        return base64.b64encode(
+            ec.generate_private_key(CURVE).private_numbers().private_value
+            .to_bytes(28, "big")).decode("ascii")
+
+    def test_flat_private_key_map(self):
+        key = self._key()
+        devices = bridge.parse_devices({"airtag1": key}, "devices.json")
+        self.assertEqual(devices, {"airtag1": [key]})
+
+    def test_device_with_additional_keys(self):
+        main = self._key()
+        extra = [self._key(), self._key()]
+        devices = bridge.parse_devices(
+            {"airtag1": [main, *extra]}, "devices.json")
+        self.assertEqual(devices, {"airtag1": [main, *extra]})
+
+    def test_device_with_single_key_list(self):
+        main = self._key()
+        devices = bridge.parse_devices({"airtag1": [main]}, "devices.json")
+        self.assertEqual(devices, {"airtag1": [main]})
+
+    def test_mixed_flat_and_list(self):
+        solo = self._key()
+        main = self._key()
+        extra = [self._key()]
+        devices = bridge.parse_devices(
+            {"solo": solo, "Z7NYAJ": [main, *extra]}, "devices.json")
+        self.assertEqual(devices, {"solo": [solo], "Z7NYAJ": [main, *extra]})
+
+    def test_all_keys_derive_distinct_ids(self):
+        main = self._key()
+        other = self._key()
+        devices = bridge.parse_devices(
+            {"tag": [main, other]}, "devices.json")
+        ids = {bridge.derive_apple_id(key) for key in devices["tag"]}
+        self.assertEqual(len(ids), 2)
+
+    def test_invalid_device_value(self):
+        with self.assertRaises(ValueError):
+            bridge.parse_devices({"tag": 123}, "devices.json")
+
+    def test_empty_list(self):
+        with self.assertRaises(ValueError):
+            bridge.parse_devices({"tag": []}, "devices.json")
+
+    def test_list_with_non_string(self):
+        with self.assertRaises(ValueError):
+            bridge.parse_devices(
+                {"tag": [self._key(), 123]}, "devices.json")
+
+    def test_empty_string(self):
+        with self.assertRaises(ValueError):
+            bridge.parse_devices({"tag": ""}, "devices.json")
+
+    def test_top_level_must_be_object(self):
+        with self.assertRaises(ValueError):
+            bridge.parse_devices([{"name": "tag", "privateKey": self._key()}],
+                                 "devices.json")
+
+
 if __name__ == "__main__":
     unittest.main()

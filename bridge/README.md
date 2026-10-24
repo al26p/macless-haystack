@@ -13,6 +13,7 @@ to push their current position. This bridge closes the gap:
 CronJob (every 6h)
   └─ read {name: privateKey} map          (Kubernetes Secret)
   └─ derive the Apple search id per key   (sha256 of the advertisement public key)
+     (a device may carry a list of rotating keys via "additionalKeys")
   └─ POST /find {"ids":[...], "days":1}   (macless-haystack endpoint)
        ← encrypted reports
   └─ decrypt each report locally           (ECDH P-224 + AES-128-GCM)
@@ -41,13 +42,45 @@ decrypts the reports:
 (`python3 -m unittest -v` in `bridge/`), including negative coordinates and both payload
 lengths.
 
+## Devices
+
+`DEVICES_FILE` is a flat object keyed by the Traccar device name. The simplest form maps
+each name to a single private key:
+
+```json
+{
+  "airtag1": "<privateKey-b64>",
+  "airtag2": "<privateKey-b64>"
+}
+```
+
+A tag that rotates through several advertisement keys (an OpenHaystack / macless-haystack
+firmware flashed with more than one key) uses a list value: the leading key first,
+followed by the additional keys. Every key is derived and queried, and the decrypted
+reports are posted under the same Traccar device name:
+
+```json
+{
+  "airtag1": "<single-key-b64>",
+  "Z7NYAJ": ["<leading-key-b64>", "<key-b64>", "<key-b64>", "..."]
+}
+```
+
+`DEVICES_DIR` (a directory of files, filename = device name, content = a single private
+key) is unchanged and has no multi-key form.
+
+Because a rotating tag yields one Apple search id per key, one `/find` request per key is
+issued with the default `MH_PER_DEVICE=true`. For a tag with many keys, set
+`MH_PER_DEVICE=false` and raise `MH_MAX_IDS` to at least the total key count to fetch
+everything in a single request.
+
 ## Configuration
 
 All configuration is via environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `DEVICES_FILE` | – | JSON file `{name: privateKey}` (mounted Secret). |
+| `DEVICES_FILE` | – | JSON file `{name: privateKey}` or `{name: [privateKey, *additionalKeys]}` (mounted Secret). |
 | `DEVICES_DIR` | – | Alternative: a directory of files, filename = device name, content = private key. |
 | `MH_ENDPOINT_URL` | `http://macless-haystack:6176/find` | Endpoint `/find` URL. |
 | `MH_ENDPOINT_USER` / `MH_ENDPOINT_PASS` | – | Optional HTTP basic auth for the endpoint. |
@@ -56,7 +89,7 @@ All configuration is via environment variables:
 | `STATE_FILE` | `/state/seen.json` | Dedup state (must survive across runs). |
 | `QUERY_DAYS` | `1` | How far back to query (the endpoint's `days`). |
 | `STATE_MAX_AGE` | `172800` | Prune seen reports older than this many seconds. |
-| `MH_PER_DEVICE` | `true` | Query each device with its own `/find` request (one log line per tag). Set to `false` to batch. |
+| `MH_PER_DEVICE` | `true` | Query each key with its own `/find` request (one request per key). Set to `false` to batch, which is preferable for tags with many keys. |
 | `MH_MAX_IDS` | `100` | Max ids per fetch request when batching (`MH_PER_DEVICE=false`). |
 | `HTTP_TIMEOUT` | `60` | Request timeout in seconds. |
 | `DRY_RUN` | `false` | Fetch and decrypt, log what would be posted, but do not post or touch state. |
@@ -89,11 +122,12 @@ endpoint deployment (`k8s/macless-haystack.yaml`):
 
 1. Put your devices into the `macless-bridge-devices` Secret. The key is the Traccar
    device name; the value is the base64 `Private key` from `generate_keys.py` (or the
-   `privateKey` field of the exported `_devices.json`):
+   leading `privateKey` of the exported `_devices.json`). A rotating tag uses a list of
+   keys instead of a single string:
 
    ```sh
    kubectl create secret generic macless-bridge-devices \
-     --from-literal=devices.json='{"airtag1":"<privateKey-b64>","airtag2":"<privateKey-b64>"}' \
+     --from-literal=devices.json='{"airtag1":"<privateKey-b64>","Z7NYAJ":["<leading-b64>","<b64>","<b64>"]}' \
      --dry-run=client -o yaml | kubectl apply -f -
    ```
 

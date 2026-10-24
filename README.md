@@ -110,8 +110,9 @@ A second, optional image in this repository (`ghcr.io/al26p/macless-haystack-bri
 replays locations into a [Traccar](https://www.traccar.org/) server so the tags show up
 as normal Traccar devices with full trip history.
 
-Every run it reads a map of `{traccar-device-name: privateKey}`, derives each Apple search
-id from the private key, asks this endpoint for the last 24 hours of encrypted reports,
+Every run it reads a map of `{traccar-device-name: privateKey}` (or a device carrying the
+list of its rotating keys as `{name: [privateKey, *additionalKeys]}`), derives the Apple
+search id for every key, asks this endpoint for the last 24 hours of encrypted reports,
 decrypts them locally, and posts each position to Traccar's OsmAnd endpoint
 (`:5055`) at its **original** fix time. Traccar accepts historical timestamps, so the
 last day of movement is backfilled into its trip/history pipeline. See
